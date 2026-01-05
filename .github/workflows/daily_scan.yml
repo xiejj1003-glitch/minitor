@@ -35,4 +35,4 @@ jobs:
         MAIL_USER: ${{ secrets.MAIL_USER }}
         MAIL_PASS: ${{ secrets.MAIL_PASS }}
         MAIL_TO: ${{ secrets.MAIL_TO }}
-      run: python scanner.py
+      run: python monitor.py
