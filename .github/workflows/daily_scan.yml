@@ -1,0 +1,38 @@
+name: Nano Stock Radar (纳米雷达)
+
+# 触发规则：
+# 1. schedule: 每30分钟自动运行
+# 2. workflow_dispatch: 允许你手动点击按钮运行 (测试用)
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  scan-job:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. 拉取你的代码仓库
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # 2. 准备 Python 环境
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    # 3. 安装依赖 (读取你的 requirements.txt)
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    # 4. 运行扫描脚本
+    - name: Run Scanner Script
+      env:
+        # 这里会去读取你在 Settings 里配好的密码
+        PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+      # ⚠️ 注意：这里必须是你刚才保存的 Python 文件名
+      # 如果你刚才保存的是 scanner.py 就写 scanner.py
+      run: python scanner.py
