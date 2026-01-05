@@ -5,7 +5,8 @@ name: Nano Stock Radar (纳米雷达)
 # 2. workflow_dispatch: 允许你手动点击按钮运行 (测试用)
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    # 👇 改了这里！只在美股交易时段运行，拒绝半夜骚扰
+    - cron: '*/30 13-21 * * 1-5'
   workflow_dispatch:
 
 jobs:
