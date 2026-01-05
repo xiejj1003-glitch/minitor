@@ -3,7 +3,8 @@ import pandas as pd
 import os
 import smtplib
 from email.mime.text import MIMEText
-from email.header import Header
+from email.utils import formataddr  # <--- 新增这个工具
+from io import StringIO             # <--- 新增这个工具(修警告用)
 from datetime import datetime
 
 # ===========================
@@ -24,23 +25,26 @@ def send_email(content):
         return
 
     # 2. 邮件内容设置
-    message = MIMEText(content, 'html', 'utf-8') # 支持 HTML 格式
-    message['From'] = Header("Nano-Sniper 哨兵", 'utf-8')
-    message['To'] = Header("指挥官", 'utf-8')
+    message = MIMEText(content, 'html', 'utf-8')
+    
+    # === 关键修改点开始 ===
+    # QQ邮箱要求极其严格，必须是 "昵称 <邮箱>" 的格式，且邮箱必须和登录账号一致
+    # 比如: "Nano哨兵 <123456@qq.com>"
+    message['From'] = formataddr(["Nano-Sniper 哨兵", mail_user])
+    message['To'] = formataddr(["指挥官", mail_to])
+    # === 关键修改点结束 ===
+    
     subject = f"🔥 妖股雷达异动提醒 ({datetime.now().strftime('%H:%M')})"
-    message['Subject'] = Header(subject, 'utf-8')
+    message['Subject'] = subject
 
     try:
-        # 3. 连接邮箱服务器 (这里以 QQ 邮箱为例)
-        # 如果是 163 邮箱，改成 smtp.163.com
-        # 如果是 Gmail，改成 smtp.gmail.com
+        # 3. 连接邮箱服务器
         smtp_obj = smtplib.SMTP_SSL('smtp.qq.com', 465) 
-        
         smtp_obj.login(mail_user, mail_pass)
         smtp_obj.sendmail(mail_user, [mail_to], message.as_string())
-        print("✅ 邮件已发送成功")
+        print("✅ 邮件已发送成功！(快去检查收件箱)")
         smtp_obj.quit()
-    except smtplib.SMTPException as e:
+    except Exception as e:
         print(f"❌ 邮件发送失败: {e}")
 
 def scan_nano_stocks():
@@ -52,7 +56,10 @@ def scan_nano_stocks():
     
     try:
         response = requests.get(FINVIZ_URL, headers=headers)
-        tables = pd.read_html(response.text)
+        
+        # 修复 FutureWarning: 使用 StringIO 包装字符串
+        html_data = StringIO(response.text)
+        tables = pd.read_html(html_data)
         df = tables[-2]
         
         if df.empty or 'Ticker' not in df.columns:
@@ -61,7 +68,7 @@ def scan_nano_stocks():
 
         top_movers = df.head(10)
         
-        # 生成 HTML 表格格式的邮件内容
+        # 生成 HTML 邮件
         msg_lines = []
         msg_lines.append(f"<h3>🕒 扫描时间: {datetime.now().strftime('%H:%M')} (美东)</h3>")
         msg_lines.append("<p>筛选策略: <b>Micro Cap + RelVol > 2 + Change > 5%</b></p>")
@@ -74,15 +81,18 @@ def scan_nano_stocks():
             change = row['Change']
             volume = row['Volume']
             
-            # 颜色标记：涨幅标红
-            msg_lines.append(f"<tr><td><b>{ticker}</b></td><td style='color:red;'>{change}</td><td>${price}</td><td>{volume}</td></tr>")
+            # 把 Volume 转成更易读的格式 (比如 116185096 -> 116M)
+            vol_str = str(volume)
+            if volume > 1000000:
+                vol_str = f"{volume/1000000:.1f}M"
+            
+            msg_lines.append(f"<tr><td><b>{ticker}</b></td><td style='color:red;'>{change}</td><td>${price}</td><td>{vol_str}</td></tr>")
             
         msg_lines.append("</table>")
-        msg_lines.append("<p><i>⚠️ 风险提示: 请务必结合 VWAP 指标判断，切勿无脑追高。</i></p>")
+        msg_lines.append("<p><i>⚠️ 风险提示: 必须结合 VWAP 指标判断。</i></p>")
         
         final_msg = "".join(msg_lines)
         
-        # 发送邮件
         send_email(final_msg)
         print(top_movers[['Ticker', 'Change', 'Price', 'Volume']])
 
