@@ -31,8 +31,8 @@ jobs:
     # 4. 运行扫描脚本
     - name: Run Scanner Script
       env:
-        # 这里会去读取你在 Settings 里配好的密码
-        PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
-      # ⚠️ 注意：这里必须是你刚才保存的 Python 文件名
-      # 如果你刚才保存的是 scanner.py 就写 scanner.py
+        # 这里把你的三个邮箱密码传进去
+        MAIL_USER: ${{ secrets.MAIL_USER }}
+        MAIL_PASS: ${{ secrets.MAIL_PASS }}
+        MAIL_TO: ${{ secrets.MAIL_TO }}
       run: python scanner.py
