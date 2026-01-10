@@ -1,0 +1,49 @@
+name: Wyckoff Hunter
+
+# 触发机制
+on:
+  # 1. 手动触发 (想跑就跑)
+  workflow_dispatch:
+  
+  # 2. 定时触发 (保持你的节奏)
+  schedule:
+    # -------------------------------------------------------
+    # 🕒 节奏说明 (UTC 时间):
+    # 美股收盘是美东 16:00 (夏令时) / 17:00 (冬令时)
+    # 对应的 UTC 是 20:00 / 21:00
+    # -------------------------------------------------------
+    
+    # 方案 A: 【收盘复盘】 (推荐)
+    # UTC 21:30 = 北京时间 05:30 (冬令时) / 04:30 (夏令时)
+    # 此时美股刚收盘，数据已定型，是捕捉"Daily Close"形态的最佳时机
+    - cron: '30 21 * * 1-5'
+
+    # 方案 B: 【盘中异动】 (如果你想在美股中午看一眼)
+    # UTC 17:00 = 美东中午 12:00 = 北京时间 01:00
+    # - cron: '0 17 * * 1-5' 
+
+jobs:
+  wyckoff_analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check out code (读取代码)
+      uses: actions/checkout@v3
+
+    - name: Set up Python (配置环境)
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies (安装依赖)
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Wyckoff Scan (执行威科夫扫描)
+      env:
+        # 🔐 读取你仓库里的机密配置
+        MAIL_USER: ${{ secrets.MAIL_USER }}
+        MAIL_PASS: ${{ secrets.MAIL_PASS }}
+        MAIL_TO: ${{ secrets.MAIL_TO }}
+      run: |
+        python wyckoff_scan.py
