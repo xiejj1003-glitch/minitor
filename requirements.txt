@@ -1,5 +1,6 @@
-requests
 pandas
 numpy
-lxml
 yfinance
+requests
+scipy
+lxml
